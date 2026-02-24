@@ -34,6 +34,8 @@ public class GamePanel extends JPanel implements ActionListener {
 
     Timer timer;
     Random random;
+    Image appleImg;
+    Image predatorImg;
 
     public GamePanel() {
         random = new Random();
@@ -52,6 +54,7 @@ public class GamePanel extends JPanel implements ActionListener {
         timer.start();
     }
     public void newApple() {
+        appleImg = new ImageIcon(getClass().getResource("/assets/apple.png")).getImage();
         appleX = random.nextInt(WIDTH / UNIT_SIZE) * UNIT_SIZE;
         appleY = random.nextInt(HEIGHT / UNIT_SIZE) * UNIT_SIZE;
     }
@@ -61,6 +64,7 @@ public class GamePanel extends JPanel implements ActionListener {
         bigAppleActive = true;
     }
     public void spawnPredator() {
+        predatorImg = new ImageIcon(getClass().getResource("/assets/predator.png")).getImage();
         predatorX = random.nextInt(WIDTH / UNIT_SIZE) * UNIT_SIZE;
         predatorY = random.nextInt(HEIGHT / UNIT_SIZE) * UNIT_SIZE;
         predatorActive = true;
@@ -75,8 +79,7 @@ public class GamePanel extends JPanel implements ActionListener {
     public void draw(Graphics g) {
         if (running) {
             if (predatorActive) {
-                g.setColor(Color.RED);
-                g.fillRect(predatorX, predatorY, UNIT_SIZE, UNIT_SIZE);
+                g.drawImage(predatorImg, predatorX, predatorY,UNIT_SIZE * 2, UNIT_SIZE * 2, null);
             }
             // Vẽ táo to
             if (bigAppleActive) {
@@ -85,8 +88,7 @@ public class GamePanel extends JPanel implements ActionListener {
             }
 
 
-            g.setColor(Color.red);
-            g.fillOval(appleX, appleY, UNIT_SIZE, UNIT_SIZE);
+            g.drawImage(appleImg, appleX, appleY, UNIT_SIZE, UNIT_SIZE, null);
 
             for (int i = 0; i < bodyParts; i++) {
                 if (i == 0) {
@@ -187,16 +189,15 @@ public class GamePanel extends JPanel implements ActionListener {
             snakeSpeed = 80;
             timer.setDelay(snakeSpeed);
 
-            JOptionPane.showMessageDialog(this, "Đúng! Tăng tốc trong 5 giây!");
+//            JOptionPane.showMessageDialog(this, "Đúng! Tăng tốc trong 5 giây!");
 
-            // Sau 5 giây quay lại bình thường
             new Timer(5000, e -> {
                 snakeSpeed = 120;
                 timer.setDelay(snakeSpeed);
             }).start();
         } else {
             wrongCount++;
-            JOptionPane.showMessageDialog(this, "Sai! Wrong = " + wrongCount);
+//            JOptionPane.showMessageDialog(this, "Sai! Kẻ săn mồi được tăng tốc chạy");
 
             if (!predatorActive) {
                 spawnPredator();
