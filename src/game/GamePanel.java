@@ -256,15 +256,24 @@ public class GamePanel extends JPanel implements ActionListener {
             }
         }
 
-        // Predator bắt được
+        // Predator1 bắt được
         Rectangle snakeHead = new Rectangle(x[0], y[0], UNIT_SIZE, UNIT_SIZE);
-        Rectangle predatorRect = new Rectangle(predatorX, predatorY, UNIT_SIZE, UNIT_SIZE);
+        Rectangle predator1Rect = new Rectangle(predatorX, predatorY, UNIT_SIZE, UNIT_SIZE);
 
-        if (snakeHead.intersects(predatorRect)) {
+        if (snakeHead.intersects(predator1Rect)) {
             running = false;
             timer.stop();
             JOptionPane.showMessageDialog(this, "Bạn đã bị săn!");
         }
+
+        Rectangle predator2Rect = new Rectangle(predatorX, predatorY, UNIT_SIZE, UNIT_SIZE);
+
+        if (snakeHead.intersects(predator2Rect)) {
+            running = false;
+            timer.stop();
+            JOptionPane.showMessageDialog(this, "Bạn đã bị săn!");
+        }
+
 
         // Đụng tường
         if (x[0] < 0 || x[0] >= WIDTH || y[0] < 0 || y[0] >= HEIGHT) {
