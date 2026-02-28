@@ -16,7 +16,6 @@ public class GamePanel extends JPanel implements ActionListener {
     // Toạ độ bắt đầu game ( góc trên bên trái )
     final int x[] = new int[GAME_UNITS];
     final int y[] = new int[GAME_UNITS];
-
     int snakeSpeed = 120; // Tốc độ mặc định của Rắn
     int bodyParts = 3; // Độ dài ban đầu của Rắn
     char direction = 'R'; // Hướng ban đầu của Rắn
@@ -25,10 +24,14 @@ public class GamePanel extends JPanel implements ActionListener {
     int appleX;
     int appleY;
     int applesEaten;
+    // Nanh rắn ( chưa làm )
+    // Thuốc hồi máu ( chưa làm )
+    // Thuốc hoảng sợ ( chưa làm )
+    // Kho báu
     static final int TREASURE_SIZE = UNIT_SIZE * 4;
-    int bigAppleX;
-    int bigAppleY;
-    boolean bigAppleActive = false;
+    int treasureX;
+    int treasureY;
+    boolean treasureActive = false;
     int wrongCount = 0;
     // Predator và Boss
     static final int PREDATOR_SIZE = UNIT_SIZE * 2;
@@ -53,9 +56,8 @@ public class GamePanel extends JPanel implements ActionListener {
     Random random;
     Image appleImg;
     Image predatorImg;
-    Image treasureImg ;
+    Image treasureImg;
     Image bossImg;
-
 
 
     public GamePanel() {
@@ -79,6 +81,7 @@ public class GamePanel extends JPanel implements ActionListener {
         timer = new Timer(snakeSpeed, this);
         timer.start();
     }
+
     public void generateWalls() {
         walls.clear();
         for (int i = 0; i < 10; i++) {
@@ -98,6 +101,7 @@ public class GamePanel extends JPanel implements ActionListener {
             walls.add(new Rectangle(wx, wy, UNIT_SIZE, UNIT_SIZE));
         }
     }
+
     public void newApple() {
         appleImg = new ImageIcon(getClass().getResource("/assets/apple.png")).getImage();
         boolean onSnake;
@@ -114,25 +118,28 @@ public class GamePanel extends JPanel implements ActionListener {
         } while (onSnake);
     }
 
-    public void newBigApple() {
-        bigAppleX = random.nextInt(WIDTH / TREASURE_SIZE) * UNIT_SIZE;
-        bigAppleY = random.nextInt(HEIGHT /TREASURE_SIZE) * UNIT_SIZE;
-        bigAppleActive = true;
+    public void newtreasure() {
+        treasureX = random.nextInt(WIDTH / TREASURE_SIZE) * UNIT_SIZE;
+        treasureY = random.nextInt(HEIGHT / TREASURE_SIZE) * UNIT_SIZE;
+        treasureActive = true;
     }
+
     public void spawnPredator() {
         predatorX = random.nextInt((WIDTH - PREDATOR_SIZE) / UNIT_SIZE) * UNIT_SIZE;
         predatorY = random.nextInt((HEIGHT - PREDATOR_SIZE) / UNIT_SIZE) * UNIT_SIZE;
         predatorActive = true;
     }
+
     public void spawnPredator2() {
         predator2X = random.nextInt((WIDTH - PREDATOR_SIZE) / UNIT_SIZE) * UNIT_SIZE;
         predator2Y = random.nextInt((HEIGHT - PREDATOR_SIZE) / UNIT_SIZE) * UNIT_SIZE;
         predator2Active = true;
     }
-    public void spawnBoss() {
 
-        bossX = random.nextInt((WIDTH - BOSS_SIZE ) / UNIT_SIZE) * UNIT_SIZE;
-        bossY = random.nextInt((HEIGHT - BOSS_SIZE ) / UNIT_SIZE) * UNIT_SIZE;
+    // Mỗi lever nên spawm 1 predator mới ( chưa làm )
+    public void spawnBoss() {
+        bossX = random.nextInt((WIDTH - BOSS_SIZE) / UNIT_SIZE) * UNIT_SIZE;
+        bossY = random.nextInt((HEIGHT - BOSS_SIZE) / UNIT_SIZE) * UNIT_SIZE;
         bossActive = true;
     }
 
@@ -148,6 +155,8 @@ public class GamePanel extends JPanel implements ActionListener {
             g.setFont(new Font("Arial", Font.BOLD, 20));
             g.drawString("Score: " + applesEaten, 20, 30);
             g.drawString("Level: " + level, 20, 60);
+            // Vẽ thanh máu của Rắn : ( chưa làm )
+
             // Đổi màu nền theo level
             switch (level % 5) {
                 case 1 -> setBackground(Color.black);
@@ -158,7 +167,7 @@ public class GamePanel extends JPanel implements ActionListener {
             }
 
             if (bossMode) {
-                g.drawImage(bossImg ,bossX, bossY, BOSS_SIZE , BOSS_SIZE  , null);
+                g.drawImage(bossImg, bossX, bossY, BOSS_SIZE, BOSS_SIZE, null);
             }
 
             if (predator2Active) {
@@ -166,12 +175,11 @@ public class GamePanel extends JPanel implements ActionListener {
                         PREDATOR_SIZE, PREDATOR_SIZE, null);
             }
             if (predatorActive) {
-                g.drawImage(predatorImg, predatorX, predatorY,PREDATOR_SIZE , PREDATOR_SIZE , null);
+                g.drawImage(predatorImg, predatorX, predatorY, PREDATOR_SIZE, PREDATOR_SIZE, null);
             }
 
-            // Vẽ táo to
-            if (bigAppleActive) {
-                g.drawImage(treasureImg ,bigAppleX, bigAppleY, TREASURE_SIZE ,TREASURE_SIZE , null);
+            if (treasureActive) {
+                g.drawImage(treasureImg, treasureX, treasureY, TREASURE_SIZE, TREASURE_SIZE, null);
             }
             g.drawImage(appleImg, appleX, appleY, UNIT_SIZE, UNIT_SIZE, null);
             g.setColor(Color.gray);
@@ -188,11 +196,11 @@ public class GamePanel extends JPanel implements ActionListener {
             }
         }
     }
+
+    // Cấp độ ( 1-10 )
     public void levelUp() {
         level++;
-
         if (predatorSpeed > 1) predatorSpeed--;
-
         if (snakeSpeed > 60) {
             snakeSpeed -= 5;
             timer.setDelay(snakeSpeed);
@@ -223,15 +231,16 @@ public class GamePanel extends JPanel implements ActionListener {
             }
 
             // 30% xác suất spawn rương
-            if (random.nextInt(100) < 99 && !bigAppleActive) {
-                newBigApple();
+            if (random.nextInt(100) < 30 && !treasureActive) {
+                newtreasure();
             }
+            // thêm tỷ lệ spawm các vật phẩm khác như Nanh rắn hoặc thuốc sức mạnh ( chưa làm )
         }
-        // Táo to
-        if (bigAppleActive) {
+        // Rương báu
+        if (treasureActive) {
             Rectangle treasureRect = new Rectangle(
-                    bigAppleX,
-                    bigAppleY,
+                    treasureX,
+                    treasureY,
                     TREASURE_SIZE,
                     TREASURE_SIZE
             );
@@ -240,12 +249,13 @@ public class GamePanel extends JPanel implements ActionListener {
             if (treasureRect.contains(headCenterX, headCenterY)) {
                 timer.stop();
                 showQuestion();
-                bigAppleActive = false;
+                treasureActive = false;
                 newApple();
                 timer.start();
             }
         }
     }
+
     public void checkCollision() {
         Rectangle head = new Rectangle(x[0], y[0], UNIT_SIZE, UNIT_SIZE);
         for (Rectangle wall : walls) {
@@ -280,6 +290,7 @@ public class GamePanel extends JPanel implements ActionListener {
             JOptionPane.showMessageDialog(this, "Game Over!");
         }
     }
+
     private void checkEnemyCollision(Rectangle head, boolean active,
                                      int ex, int ey, int size, String name) {
         if (!active) return;
@@ -290,6 +301,7 @@ public class GamePanel extends JPanel implements ActionListener {
             JOptionPane.showMessageDialog(this, "Bạn đã bị " + name + " săn!");
         }
     }
+
     public void move() {
         for (int i = bodyParts; i > 0; i--) {
             x[i] = x[i - 1];
@@ -297,12 +309,21 @@ public class GamePanel extends JPanel implements ActionListener {
         }
 
         switch (direction) {
-            case 'U': y[0] -= UNIT_SIZE; break;
-            case 'D': y[0] += UNIT_SIZE; break;
-            case 'L': x[0] -= UNIT_SIZE; break;
-            case 'R': x[0] += UNIT_SIZE; break;
+            case 'U':
+                y[0] -= UNIT_SIZE;
+                break;
+            case 'D':
+                y[0] += UNIT_SIZE;
+                break;
+            case 'L':
+                x[0] -= UNIT_SIZE;
+                break;
+            case 'R':
+                x[0] += UNIT_SIZE;
+                break;
         }
     }
+
     public void movePredator() {
 
         if (!predatorActive) return;
@@ -320,6 +341,7 @@ public class GamePanel extends JPanel implements ActionListener {
             else predatorY -= step;
         }
     }
+
     public void movePredator2() {
 
         if (!predator2Active) return;
@@ -333,6 +355,7 @@ public class GamePanel extends JPanel implements ActionListener {
             predator2Y += (dy > 0) ? UNIT_SIZE : -UNIT_SIZE;
         }
     }
+
     public void moveBoss() {
 
         int step = UNIT_SIZE;
@@ -346,6 +369,7 @@ public class GamePanel extends JPanel implements ActionListener {
             bossY += (dy > 0) ? step : -step;
         }
     }
+
     public void showQuestion() {
 
         String question = "Java dùng từ khóa nào để tạo class?";
