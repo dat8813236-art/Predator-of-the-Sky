@@ -5,6 +5,8 @@ import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
 import java.util.Random;
+import quiz.Question;
+import quiz.QuestionManager;
 
 public class GamePanel extends JPanel implements ActionListener {
     // Cửa sổ của màn hình game
@@ -33,6 +35,7 @@ public class GamePanel extends JPanel implements ActionListener {
     int treasureY;
     boolean treasureActive = false;
     int wrongCount = 0;
+    QuestionManager questionManager = new QuestionManager();
     // Predator và Boss
     static final int PREDATOR_SIZE = UNIT_SIZE * 2;
     int predatorX;
@@ -430,26 +433,23 @@ public class GamePanel extends JPanel implements ActionListener {
 
     public void showQuestion() {
 
-        String question = "Java dùng từ khóa nào để tạo class?";
-        String[] options = {"class", "define", "new", "object"};
+        Question q = questionManager.getRandomQuestion();
 
         int answer = JOptionPane.showOptionDialog(
                 this,
-                question,
+                q.getContent(),
                 "Quiz",
                 JOptionPane.DEFAULT_OPTION,
                 JOptionPane.QUESTION_MESSAGE,
                 null,
-                options,
-                options[0]
+                q.getOptions(),
+                q.getOptions()[0]
         );
 
-        if (answer == 0) {
+        if (answer == q.getCorrectIndex()) {
 
             snakeSpeed = 80;
             timer.setDelay(snakeSpeed);
-
-//            JOptionPane.showMessageDialog(this, "Đúng! Tăng tốc trong 5 giây!");
 
             Timer speedTimer = new Timer(5000, e -> {
                 snakeSpeed = 120;
@@ -457,15 +457,17 @@ public class GamePanel extends JPanel implements ActionListener {
             });
             speedTimer.setRepeats(false);
             speedTimer.start();
+
         } else {
+
             wrongCount++;
-//            JOptionPane.showMessageDialog(this, "Sai! Kẻ săn mồi được tăng tốc chạy");
 
             if (!predatorActive) {
                 spawnPredator();
             }
+
             if (predatorSpeed > 1) {
-                predatorSpeed--;   // càng sai càng nhanh
+                predatorSpeed--;
             }
         }
     }
