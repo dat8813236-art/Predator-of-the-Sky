@@ -24,6 +24,9 @@ public class QuestionManager {
     }
 
     public Question getRandomQuestion() {
+        if (questions.isEmpty()) {
+            return null;
+        }
         return questions.get(random.nextInt(questions.size()));
     }
 }

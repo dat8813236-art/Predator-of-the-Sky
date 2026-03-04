@@ -1,8 +1,9 @@
 package main;
-import ui.LoginFrame;
+import game.GameFrame;
+
 
 public class main {
     public static void main(String[] args) {
-        new LoginFrame().setVisible(true);
+        new GameFrame().setVisible(true);
     }
 }

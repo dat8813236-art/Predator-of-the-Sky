@@ -64,10 +64,12 @@ public class GamePanel extends JPanel implements ActionListener {
     Image predator2Img;
     Image treasureImg;
     Image bossImg;
+    Image snakeHeadImg;
 
 
     public GamePanel() {
         random = new Random();
+        snakeHeadImg = new ImageIcon(getClass().getResource("/assets/snakeHead.png")).getImage();
         appleImg = new ImageIcon(getClass().getResource("/assets/apple.png")).getImage();
         wallImg = new ImageIcon(getClass().getResource("/assets/wall.png")).getImage();
         predatorImg = new ImageIcon(getClass().getResource("/assets/predator.png")).getImage();
@@ -210,18 +212,24 @@ public class GamePanel extends JPanel implements ActionListener {
             for (Rectangle wall : walls) {
                 g.drawImage(wallImg, wall.x, wall.y, UNIT_SIZE, UNIT_SIZE, null);
             }
+// Vẽ rắn
             for (int i = 0; i < bodyParts; i++) {
-                if (i == 0) {
-                    g.setColor(Color.green);
-                } else {
-                    g.setColor(new Color(45, 180, 0)); // thân
-                }
-                g.fillRect(x[i], y[i], UNIT_SIZE, UNIT_SIZE);
-            }
 
+                if (i == 0) {
+                    // ĐẦU RẮN
+                    g.drawImage(snakeHeadImg, x[0], y[0], UNIT_SIZE, UNIT_SIZE, this);
+                } else {
+                    // THÂN RẮN
+                    if (i % 2 == 0)
+                        g.setColor(new Color(93, 140, 63));
+                    else
+                        g.setColor(new Color(166, 214, 58));
+
+                    g.fillRect(x[i], y[i], UNIT_SIZE, UNIT_SIZE);
+                }
+            }
         }
     }
-
     // Cấp độ ( 1-10 )
     public void levelUp() {
         level++;
@@ -256,7 +264,7 @@ public class GamePanel extends JPanel implements ActionListener {
             }
 
             // 30% xác suất spawn rương
-            if (random.nextInt(100) < 30 && !treasureActive) {
+            if (random.nextInt(100) < 99 && !treasureActive) {
                 newtreasure();
             }
             // thêm tỷ lệ spawm các vật phẩm khác như Nanh rắn hoặc thuốc sức mạnh ( chưa làm )
@@ -434,6 +442,10 @@ public class GamePanel extends JPanel implements ActionListener {
     public void showQuestion() {
 
         Question q = questionManager.getRandomQuestion();
+        if (q == null) {
+            JOptionPane.showMessageDialog(this, "Không có câu hỏi!");
+            return;
+        }
 
         int answer = JOptionPane.showOptionDialog(
                 this,
@@ -443,9 +455,15 @@ public class GamePanel extends JPanel implements ActionListener {
                 JOptionPane.QUESTION_MESSAGE,
                 null,
                 q.getOptions(),
-                q.getOptions()[0]
+                null
         );
 
+        // Nếu người chơi đóng cửa sổ
+        if (answer == -1) {
+            return;
+        }
+
+        // Trả lời đúng
         if (answer == q.getCorrectIndex()) {
 
             snakeSpeed = 80;
@@ -458,7 +476,9 @@ public class GamePanel extends JPanel implements ActionListener {
             speedTimer.setRepeats(false);
             speedTimer.start();
 
-        } else {
+        }
+        // Trả lời sai
+        else {
 
             wrongCount++;
 
