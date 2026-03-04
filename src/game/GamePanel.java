@@ -26,6 +26,7 @@ public class GamePanel extends JPanel implements ActionListener {
     int appleX;
     int appleY;
     int applesEaten;
+    static final int WALL_SIZE = UNIT_SIZE * 2;
     // Nanh rắn ( chưa làm )
     // Thuốc hồi máu ( chưa làm )
     // Thuốc hoảng sợ ( chưa làm )
@@ -99,8 +100,8 @@ public class GamePanel extends JPanel implements ActionListener {
             boolean overlap;
             do {
                 overlap = false;
-                wx = random.nextInt(WIDTH / UNIT_SIZE) * UNIT_SIZE;
-                wy = random.nextInt(HEIGHT / UNIT_SIZE) * UNIT_SIZE;
+                wx = random.nextInt((WIDTH - WALL_SIZE) / UNIT_SIZE) * UNIT_SIZE;
+                wy = random.nextInt((HEIGHT - WALL_SIZE) / UNIT_SIZE) * UNIT_SIZE;
                 for (int j = 0; j < bodyParts; j++) {
                     if (x[j] == wx && y[j] == wy) {
                         overlap = true;
@@ -108,7 +109,7 @@ public class GamePanel extends JPanel implements ActionListener {
                     }
                 }
             } while (overlap);
-            walls.add(new Rectangle(wx, wy, UNIT_SIZE, UNIT_SIZE));
+            walls.add(new Rectangle(wx, wy, WALL_SIZE, WALL_SIZE));
         }
     }
 
@@ -193,7 +194,7 @@ public class GamePanel extends JPanel implements ActionListener {
             // Vẽ thanh máu của Rắn : ( chưa làm )
 
 
-            if (bossMode) {
+            if (bossActive) {
                 g.drawImage(bossImg, bossX, bossY, BOSS_SIZE, BOSS_SIZE, null);
             }
 
@@ -210,7 +211,7 @@ public class GamePanel extends JPanel implements ActionListener {
             }
             g.drawImage(appleImg, appleX, appleY, UNIT_SIZE, UNIT_SIZE, null);
             for (Rectangle wall : walls) {
-                g.drawImage(wallImg, wall.x, wall.y, UNIT_SIZE, UNIT_SIZE, null);
+                g.drawImage(wallImg, wall.x, wall.y, WALL_SIZE, WALL_SIZE, null);
             }
 // Vẽ rắn
             for (int i = 0; i < bodyParts; i++) {
@@ -290,15 +291,15 @@ public class GamePanel extends JPanel implements ActionListener {
     }
 
     public void checkCollision() {
-        Rectangle head = new Rectangle(x[0], y[0], UNIT_SIZE, UNIT_SIZE);
+        Rectangle head = new Rectangle(x[0], y[0], UNIT_SIZE , UNIT_SIZE );
         for (Rectangle wall : walls) {
             if (head.intersects(wall)) {
                 gameOver("Đập đầu vào tường!");
             }
         }
         // Tự cắn thân
-        for (int i = bodyParts; i > 0; i--) {
-            if (x[0] == x[i] && y[0] == y[i]) {
+        for (int i = bodyParts - 1; i > 0; i--) {
+            if (x[0] == x[i] && y[0] == y[i])  {
                 gameOver("Bạn tự cắn mình!");
             }
         }
