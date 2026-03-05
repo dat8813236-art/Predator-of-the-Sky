@@ -5,6 +5,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
 import java.util.Random;
+
 import quiz.Question;
 import quiz.QuestionManager;
 
@@ -95,7 +96,7 @@ public class GamePanel extends JPanel implements ActionListener {
 
     public void generateWalls() {
         walls.clear();
-        for (int i = 0 ; i < 20 ; i++) {
+        for (int i = 0; i < 20; i++) {
             int wx, wy;
             boolean overlap;
             do {
@@ -153,16 +154,24 @@ public class GamePanel extends JPanel implements ActionListener {
         bossY = random.nextInt((HEIGHT - BOSS_SIZE) / UNIT_SIZE) * UNIT_SIZE;
         bossActive = true;
     }
+
     private Color getBaseColor() {
         switch (level % 5) {
-            case 1: return new Color(20, 20, 20);      // xám tối
-            case 2: return new Color(10, 20, 60);      // xanh navy
-            case 3: return new Color(0, 50, 30);       // xanh rừng
-            case 4: return new Color(60, 20, 20);      // đỏ tối
-            case 0: return new Color(40, 0, 60);       // tím tối
-            default: return Color.BLACK;
+            case 1:
+                return new Color(20, 20, 20);      // xám tối
+            case 2:
+                return new Color(10, 20, 60);      // xanh navy
+            case 3:
+                return new Color(0, 50, 30);       // xanh rừng
+            case 4:
+                return new Color(60, 20, 20);      // đỏ tối
+            case 0:
+                return new Color(40, 0, 60);       // tím tối
+            default:
+                return Color.BLACK;
         }
     }
+
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
@@ -231,6 +240,7 @@ public class GamePanel extends JPanel implements ActionListener {
             }
         }
     }
+
     // Cấp độ ( 1-10 )
     public void levelUp() {
         level++;
@@ -291,7 +301,7 @@ public class GamePanel extends JPanel implements ActionListener {
     }
 
     public void checkCollision() {
-        Rectangle head = new Rectangle(x[0], y[0], UNIT_SIZE , UNIT_SIZE );
+        Rectangle head = new Rectangle(x[0], y[0], UNIT_SIZE, UNIT_SIZE);
         for (Rectangle wall : walls) {
             if (head.intersects(wall)) {
                 gameOver("Đập đầu vào tường!");
@@ -299,7 +309,7 @@ public class GamePanel extends JPanel implements ActionListener {
         }
         // Tự cắn thân
         for (int i = bodyParts - 1; i > 0; i--) {
-            if (x[0] == x[i] && y[0] == y[i])  {
+            if (x[0] == x[i] && y[0] == y[i]) {
                 gameOver("Bạn tự cắn mình!");
             }
         }
@@ -323,6 +333,7 @@ public class GamePanel extends JPanel implements ActionListener {
             gameOver("Bạn đã bị " + name + " săn!");
         }
     }
+
     public void gameOver(String message) {
         running = false;
         timer.stop();
@@ -344,6 +355,7 @@ public class GamePanel extends JPanel implements ActionListener {
             System.exit(0);
         }
     }
+
     public void restartGame() {
         bodyParts = 3;
         applesEaten = 0;
@@ -492,6 +504,7 @@ public class GamePanel extends JPanel implements ActionListener {
             }
         }
     }
+
     public void moveBossFast() {
 
         int step = UNIT_SIZE * 3; // dash cực mạnh
@@ -505,6 +518,7 @@ public class GamePanel extends JPanel implements ActionListener {
             bossY += (dy > 0) ? step : -step;
         }
     }
+
     @Override
     public void actionPerformed(ActionEvent e) {
         if (running) {
