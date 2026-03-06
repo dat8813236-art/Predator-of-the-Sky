@@ -364,7 +364,6 @@ public class GamePanel extends JPanel implements ActionListener {
             if (random.nextInt(100) < 99 && !treasureActive) {
                 newtreasure();
             }
-
         }
         // Rương báu
         if (treasureActive) {
@@ -478,7 +477,7 @@ private void checkEnemyCollision(Rectangle head, boolean active,
     if (head.intersects(enemy)) {
 
         if (fangMode) {
-            // Ăn predator thay vì chết
+            // Quay lại ăn predator
             if (name.equals("Predator 1")) predatorActive = false;
             if (name.equals("Predator 2")) predator2Active = false;
             if (name.equals("Boss")) bossActive = false;
