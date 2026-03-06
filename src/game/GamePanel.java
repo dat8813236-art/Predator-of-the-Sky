@@ -10,11 +10,13 @@ import quiz.QuestionManager;
 
 public class GamePanel extends JPanel implements ActionListener {
     // Cửa sổ của màn hình game
-    static final int WIDTH = 1200;
-    static final int HEIGHT = 800;
+    static final int WIDTH =1200;
+    static final int HEIGHT = 600;
+
     // Kích cỡ mặc định của Rắn , Predator và boss
     static final int UNIT_SIZE = 18;
     static final int GAME_UNITS = (WIDTH * HEIGHT) / (UNIT_SIZE * UNIT_SIZE);
+
     // Toạ độ bắt đầu game ( góc trên bên trái )
     final int x[] = new int[GAME_UNITS];
     final int y[] = new int[GAME_UNITS];
@@ -22,14 +24,32 @@ public class GamePanel extends JPanel implements ActionListener {
     int bodyParts = 3; // Độ dài ban đầu của Rắn
     char direction = 'R'; // Hướng ban đầu của Rắn
     boolean running = false;
+
     // Táo
     int appleX;
     int appleY;
     int applesEaten;
+
     static final int WALL_SIZE = UNIT_SIZE * 2;
-    // Nanh rắn ( chưa làm )
-    // Thuốc hồi máu ( chưa làm )
-    // Thuốc hoảng sợ ( chưa làm )
+
+    // Nanh rắn ( đã làm )
+    boolean fangItemActive = false;
+    int fangItemX, fangItemY;
+
+    // Trạng thái cường hóa rắn
+    boolean fangMode = false;
+
+    // Thuốc tăng cường Đỏ và Xanh ( Đã làm )
+    boolean redPotionActive = false;
+    boolean bluePotionActive = false;
+
+    int redPotionX, redPotionY;
+    int bluePotionX, bluePotionY;
+
+    // Trạng thái Buff khi ăn thuốc Đỏ
+    boolean speedBoost = false;
+    boolean wallPass = false;
+
     // Kho báu
     static final int TREASURE_SIZE = UNIT_SIZE * 4;
     int treasureX;
@@ -37,6 +57,7 @@ public class GamePanel extends JPanel implements ActionListener {
     boolean treasureActive = false;
     int wrongCount = 0;
     QuestionManager questionManager = new QuestionManager();
+
     // Predator và Boss
     static final int PREDATOR_SIZE = UNIT_SIZE * 2;
     int predatorX;
@@ -53,9 +74,14 @@ public class GamePanel extends JPanel implements ActionListener {
     int bossY;
     boolean bossActive = false;
     int bossDashCounter = 0;
+    long redPotionSpawnTime;
+    long bluePotionSpawnTime;
+    long fangItemSpawnTime;
+
     // Các lever của game
     int level = 1;
     ArrayList<Rectangle> walls = new ArrayList<>();
+
     // Ảnh và các thông số khác
     Timer timer;
     Random random;
@@ -65,18 +91,29 @@ public class GamePanel extends JPanel implements ActionListener {
     Image predator2Img;
     Image treasureImg;
     Image bossImg;
-    Image snakeHeadImg;
-
-
+    Image snakeHeadDownImg;
+    Image redPotionImg;
+    Image bluePotionImg;
+    Image fangItemImg;
+    Image snakeHeadUpImg;
+    Image snakeHeadRightImg;
+    Image snakeHeadLeftImg;
+    Image head;
     public GamePanel() {
         random = new Random();
-        snakeHeadImg = new ImageIcon(getClass().getResource("/assets/snakeHead.png")).getImage();
+        snakeHeadUpImg = new ImageIcon(getClass().getResource("/assets/snakeHeadUp.png")).getImage();
+        snakeHeadRightImg = new ImageIcon(getClass().getResource("/assets/snakeHeadRight.png")).getImage();
+        snakeHeadLeftImg = new ImageIcon(getClass().getResource("/assets/snakeHeadLeft.png")).getImage();
+        redPotionImg = new ImageIcon(getClass().getResource("/assets/redPotion.png")).getImage();
+        bluePotionImg = new ImageIcon(getClass().getResource("/assets/bluePotion.png")).getImage();
+        snakeHeadDownImg = new ImageIcon(getClass().getResource("/assets/snakeHeadDown.png")).getImage();
         appleImg = new ImageIcon(getClass().getResource("/assets/apple.png")).getImage();
         wallImg = new ImageIcon(getClass().getResource("/assets/wall.png")).getImage();
         predatorImg = new ImageIcon(getClass().getResource("/assets/predator.png")).getImage();
         predator2Img = new ImageIcon(getClass().getResource("/assets/predator2.png")).getImage();
         treasureImg = new ImageIcon(getClass().getResource("/assets/treasure.png")).getImage();
         bossImg = new ImageIcon(getClass().getResource("/assets/boss.png")).getImage();
+        fangItemImg = new ImageIcon(getClass().getResource("/assets/fangItemImg.png")).getImage();
         setPreferredSize(new Dimension(WIDTH, HEIGHT));
         setBackground(Color.black);
         setFocusable(true);
@@ -146,12 +183,31 @@ public class GamePanel extends JPanel implements ActionListener {
         predator2Y = random.nextInt((HEIGHT - PREDATOR_SIZE) / UNIT_SIZE) * UNIT_SIZE;
         predator2Active = true;
     }
+    // Hàm Spawm Thuốc
+    public void spawnRedPotion() {
+        redPotionX = random.nextInt(WIDTH / UNIT_SIZE) * UNIT_SIZE;
+        redPotionY = random.nextInt(HEIGHT / UNIT_SIZE) * UNIT_SIZE;
+        redPotionActive = true;
+        redPotionSpawnTime = System.currentTimeMillis();
+    }
 
-    // Mỗi lever nên spawm 1 predator mới ( chưa làm )
+    public void spawnBluePotion() {
+        bluePotionX = random.nextInt(WIDTH / UNIT_SIZE) * UNIT_SIZE;
+        bluePotionY = random.nextInt(HEIGHT / UNIT_SIZE) * UNIT_SIZE;
+        bluePotionActive = true;
+    }
+
+    // Mỗi lever nên spawm 1 predator mới
     public void spawnBoss() {
         bossX = random.nextInt((WIDTH - BOSS_SIZE) / UNIT_SIZE) * UNIT_SIZE;
         bossY = random.nextInt((HEIGHT - BOSS_SIZE) / UNIT_SIZE) * UNIT_SIZE;
         bossActive = true;
+    }
+    public void spawnFangItem() {
+        fangItemX = random.nextInt(WIDTH / UNIT_SIZE) * UNIT_SIZE;
+        fangItemY = random.nextInt(HEIGHT / UNIT_SIZE) * UNIT_SIZE;
+        fangItemActive = true;
+        fangItemSpawnTime = System.currentTimeMillis();
     }
     private Color getBaseColor() {
         switch (level % 5) {
@@ -197,6 +253,21 @@ public class GamePanel extends JPanel implements ActionListener {
             if (bossActive) {
                 g.drawImage(bossImg, bossX, bossY, BOSS_SIZE, BOSS_SIZE, null);
             }
+            if(redPotionActive){
+                long timeLeft = 8000 - (System.currentTimeMillis() - redPotionSpawnTime);
+
+                if(timeLeft > 2000 || (System.currentTimeMillis()/200)%2==0){
+                    g.drawImage(redPotionImg, redPotionX, redPotionY, UNIT_SIZE, UNIT_SIZE, null);
+                }
+            }
+
+            if(bluePotionActive){
+                long timeLeft = 8000 - (System.currentTimeMillis() - bluePotionSpawnTime);
+
+                if(timeLeft > 2000 || (System.currentTimeMillis()/200)%2==0){
+                    g.drawImage(bluePotionImg, bluePotionX, bluePotionY, UNIT_SIZE, UNIT_SIZE, null);
+                }
+            }
 
             if (predator2Active) {
                 g.drawImage(predator2Img, predator2X, predator2Y,
@@ -213,12 +284,21 @@ public class GamePanel extends JPanel implements ActionListener {
             for (Rectangle wall : walls) {
                 g.drawImage(wallImg, wall.x, wall.y, WALL_SIZE, WALL_SIZE, null);
             }
-// Vẽ rắn
-            for (int i = 0; i < bodyParts; i++) {
+            if (fangItemActive) {
+                g.drawImage(fangItemImg, fangItemX, fangItemY, UNIT_SIZE, UNIT_SIZE, null);
+            }
 
+            // Vẽ rắn
+            for (int i = 0; i < bodyParts; i++) {
+                // Thêm các chức năng để đầu rắn di chuyển theo hướng điều
                 if (i == 0) {
-                    // ĐẦU RẮN
-                    g.drawImage(snakeHeadImg, x[0], y[0], UNIT_SIZE, UNIT_SIZE, this);
+                    if(direction == 'U') head = snakeHeadUpImg;
+                    if(direction == 'D') head = snakeHeadDownImg;
+                    if(direction == 'L') head = snakeHeadLeftImg;
+                    if(direction == 'R') head = snakeHeadRightImg;
+
+                    // Đầu rắn
+                    g.drawImage(head, x[0], y[0], UNIT_SIZE, UNIT_SIZE, this);
                 } else {
                     // THÂN RẮN
                     if (i % 2 == 0)
@@ -226,11 +306,15 @@ public class GamePanel extends JPanel implements ActionListener {
                     else
                         g.setColor(new Color(166, 214, 58));
 
-                    g.fillRect(x[i], y[i], UNIT_SIZE, UNIT_SIZE);
+                    g.fillOval(x[i], y[i], UNIT_SIZE, UNIT_SIZE);
+
+                    g.setColor(Color.BLACK);
+                    g.drawRect(x[i], y[i], UNIT_SIZE, UNIT_SIZE);
                 }
             }
         }
     }
+
     // Cấp độ ( 1-10 )
     public void levelUp() {
         level++;
@@ -263,12 +347,24 @@ public class GamePanel extends JPanel implements ActionListener {
             if (applesEaten % 5 == 0) {
                 levelUp();
             }
+            // 40% spawn thuốc đỏ
+            if (random.nextInt(100) < 40 && !redPotionActive) {
+                spawnRedPotion();
+            }
+            // 30% spawn thuốc xanh
+            if (random.nextInt(100) < 30 && !bluePotionActive) {
+                spawnBluePotion();
+            }
+            // 25% rơi nanh
+            if (random.nextInt(100) < 25 && !fangItemActive) {
+                spawnFangItem();
+            }
 
             // 30% xác suất spawn rương
             if (random.nextInt(100) < 99 && !treasureActive) {
                 newtreasure();
             }
-            // thêm tỷ lệ spawm các vật phẩm khác như Nanh rắn hoặc thuốc sức mạnh ( chưa làm )
+
         }
         // Rương báu
         if (treasureActive) {
@@ -288,13 +384,62 @@ public class GamePanel extends JPanel implements ActionListener {
                 timer.start();
             }
         }
-    }
+        // Nanh rand
+        if (fangItemActive && x[0] == fangItemX && y[0] == fangItemY) {
 
+            fangItemActive = false;
+            fangMode = true;
+
+            Timer fangTimer = new Timer(5000, e -> {
+                fangMode = false;
+            });
+
+            fangTimer.setRepeats(false);
+            fangTimer.start();
+        }
+        // Ăn thuốc đỏ Tăng Tốc
+        if (redPotionActive && x[0] == redPotionX && y[0] == redPotionY) {
+
+            redPotionActive = false;
+
+            speedBoost = true;
+
+            snakeSpeed = 60;
+            timer.setDelay(snakeSpeed);
+
+            Timer speedTimer = new Timer(5000, e -> {
+                speedBoost = false;
+                snakeSpeed = 120;
+                timer.setDelay(snakeSpeed);
+            });
+
+            speedTimer.setRepeats(false);
+            speedTimer.start();
+        }
+        // Ăn thuốc Xanh xuyên đá
+        if (bluePotionActive && x[0] == bluePotionX && y[0] == bluePotionY) {
+
+            bluePotionActive = false;
+
+            wallPass = true;
+
+            Timer wallTimer = new Timer(8000, e -> {
+                wallPass = false;
+            });
+
+            wallTimer.setRepeats(false);
+            wallTimer.start();
+        }
+    }
     public void checkCollision() {
+        // Sửa lại để Rắn ăn thuốc Xanh không bị đâm vào đá
         Rectangle head = new Rectangle(x[0], y[0], UNIT_SIZE , UNIT_SIZE );
-        for (Rectangle wall : walls) {
-            if (head.intersects(wall)) {
-                gameOver("Đập đầu vào tường!");
+
+        if(!wallPass) {
+            for (Rectangle wall : walls) {
+                if (head.intersects(wall)) {
+                    gameOver("Đập đầu vào tường!");
+                }
             }
         }
         // Tự cắn thân
@@ -312,17 +457,38 @@ public class GamePanel extends JPanel implements ActionListener {
         // Đụng tường
         if (x[0] < 0 || x[0] >= WIDTH || y[0] < 0 || y[0] >= HEIGHT) {
             gameOver("Bạn đã ra khỏi bản đồ!");
+        }else {
+
+            if (x[0] < 0) x[0] = WIDTH - UNIT_SIZE;
+            if (x[0] >= WIDTH) x[0] = 0;
+
+            if (y[0] < 0) y[0] = HEIGHT - UNIT_SIZE;
+            if (y[0] >= HEIGHT) y[0] = 0;
+
         }
     }
 
-    private void checkEnemyCollision(Rectangle head, boolean active,
-                                     int ex, int ey, int size, String name) {
-        if (!active) return;
-        Rectangle enemy = new Rectangle(ex, ey, size, size);
-        if (head.intersects(enemy)) {
+
+private void checkEnemyCollision(Rectangle head, boolean active,
+                                 int ex, int ey, int size, String name) {
+    if (!active) return;
+
+    Rectangle enemy = new Rectangle(ex, ey, size, size);
+
+    if (head.intersects(enemy)) {
+
+        if (fangMode) {
+            // Ăn predator thay vì chết
+            if (name.equals("Predator 1")) predatorActive = false;
+            if (name.equals("Predator 2")) predator2Active = false;
+            if (name.equals("Boss")) bossActive = false;
+
+            applesEaten += 2; // thưởng điểm
+        } else {
             gameOver("Bạn đã bị " + name + " săn!");
         }
     }
+}
     public void gameOver(String message) {
         running = false;
         timer.stop();
@@ -527,6 +693,22 @@ public class GamePanel extends JPanel implements ActionListener {
             }
 
             checkCollision();
+            // item tự biến mất sau 8 giây
+
+            if(redPotionActive &&
+                    System.currentTimeMillis() - redPotionSpawnTime > 8000){
+                redPotionActive = false;
+            }
+
+            if(bluePotionActive &&
+                    System.currentTimeMillis() - bluePotionSpawnTime > 8000){
+                bluePotionActive = false;
+            }
+
+            if(fangItemActive &&
+                    System.currentTimeMillis() - fangItemSpawnTime > 8000){
+                fangItemActive = false;
+            }
         }
         repaint();
     }
