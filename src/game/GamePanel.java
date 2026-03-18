@@ -11,7 +11,7 @@ import quiz.QuestionManager;
 
 public class GamePanel extends JPanel implements ActionListener {
     // Cửa sổ của màn hình game
-    static final int WIDTH =1200;
+    static final int WIDTH = 1200;
     static final int HEIGHT = 600;
 
     // Kích cỡ mặc định của Rắn , Predator và boss
@@ -33,7 +33,7 @@ public class GamePanel extends JPanel implements ActionListener {
 
     static final int WALL_SIZE = UNIT_SIZE * 2;
 
-    // Nanh rắn ( đã làm )
+    // Nanh rắn
     boolean fangItemActive = false;
     int fangItemX, fangItemY;
 
@@ -50,6 +50,19 @@ public class GamePanel extends JPanel implements ActionListener {
     // Trạng thái Buff khi ăn thuốc Đỏ
     boolean speedBoost = false;
     boolean wallPass = false;
+    // Pause
+    boolean paused = false;
+
+    // Lửa Skill
+    ArrayList<Fire> fires = new ArrayList<>();
+    static final int FIRE_SIZE = UNIT_SIZE;
+
+    // BOSS HP
+    int bossMaxHP = 20;
+    int bossHP = bossMaxHP;
+
+    // trạng thái thắng
+    boolean victory = false;
 
     // Kho báu
     static final int TREASURE_SIZE = UNIT_SIZE * 4;
@@ -99,9 +112,12 @@ public class GamePanel extends JPanel implements ActionListener {
     Image snakeHeadUpImg;
     Image snakeHeadRightImg;
     Image snakeHeadLeftImg;
+    Image fireImg;
     Image head;
+
     public GamePanel() {
         random = new Random();
+        fireImg = new ImageIcon(getClass().getResource("/assets/fire.png")).getImage();
         snakeHeadUpImg = new ImageIcon(getClass().getResource("/assets/snakeHeadUp.png")).getImage();
         snakeHeadRightImg = new ImageIcon(getClass().getResource("/assets/snakeHeadRight.png")).getImage();
         snakeHeadLeftImg = new ImageIcon(getClass().getResource("/assets/snakeHeadLeft.png")).getImage();
@@ -151,25 +167,41 @@ public class GamePanel extends JPanel implements ActionListener {
         }
     }
 
+    // hàm tránh random vào đá
+    public boolean isPositionValid(int px, int py, int size) {
+
+        Rectangle obj = new Rectangle(px, py, size, size);
+
+        for (Rectangle wall : walls) {
+            if (obj.intersects(wall)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     public void newApple() {
         appleImg = new ImageIcon(getClass().getResource("/assets/apple.png")).getImage();
         boolean onSnake;
+
+
         do {
-            onSnake = false;
             appleX = random.nextInt(WIDTH / UNIT_SIZE) * UNIT_SIZE;
             appleY = random.nextInt(HEIGHT / UNIT_SIZE) * UNIT_SIZE;
-            for (int i = 0; i < bodyParts; i++) {
-                if (x[i] == appleX && y[i] == appleY) {
-                    onSnake = true;
-                    break;
-                }
-            }
-        } while (onSnake);
+
+        } while (!isPositionValid(appleX, appleY, UNIT_SIZE));
     }
 
+
     public void newtreasure() {
-        treasureX = random.nextInt(WIDTH / TREASURE_SIZE) * UNIT_SIZE;
-        treasureY = random.nextInt(HEIGHT / TREASURE_SIZE) * UNIT_SIZE;
+
+        do {
+            treasureX = random.nextInt(WIDTH / UNIT_SIZE) * UNIT_SIZE;
+            treasureY = random.nextInt(HEIGHT / UNIT_SIZE) * UNIT_SIZE;
+
+        } while (!isPositionValid(treasureX, treasureY, TREASURE_SIZE));
+
         treasureActive = true;
     }
 
@@ -184,18 +216,30 @@ public class GamePanel extends JPanel implements ActionListener {
         predator2Y = random.nextInt((HEIGHT - PREDATOR_SIZE) / UNIT_SIZE) * UNIT_SIZE;
         predator2Active = true;
     }
+
     // Hàm Spawm Thuốc
     public void spawnRedPotion() {
-        redPotionX = random.nextInt(WIDTH / UNIT_SIZE) * UNIT_SIZE;
-        redPotionY = random.nextInt(HEIGHT / UNIT_SIZE) * UNIT_SIZE;
+
+        do {
+            redPotionX = random.nextInt(WIDTH / UNIT_SIZE) * UNIT_SIZE;
+            redPotionY = random.nextInt(HEIGHT / UNIT_SIZE) * UNIT_SIZE;
+
+        } while (!isPositionValid(redPotionX, redPotionY, UNIT_SIZE));
+
         redPotionActive = true;
         redPotionSpawnTime = System.currentTimeMillis();
     }
 
     public void spawnBluePotion() {
-        bluePotionX = random.nextInt(WIDTH / UNIT_SIZE) * UNIT_SIZE;
-        bluePotionY = random.nextInt(HEIGHT / UNIT_SIZE) * UNIT_SIZE;
+
+        do {
+            bluePotionX = random.nextInt(WIDTH / UNIT_SIZE) * UNIT_SIZE;
+            bluePotionY = random.nextInt(HEIGHT / UNIT_SIZE) * UNIT_SIZE;
+
+        } while (!isPositionValid(bluePotionX, bluePotionY, UNIT_SIZE));
+
         bluePotionActive = true;
+        bluePotionSpawnTime = System.currentTimeMillis();
     }
 
     // Mỗi lever nên spawm 1 predator mới
@@ -204,12 +248,19 @@ public class GamePanel extends JPanel implements ActionListener {
         bossY = random.nextInt((HEIGHT - BOSS_SIZE) / UNIT_SIZE) * UNIT_SIZE;
         bossActive = true;
     }
+
     public void spawnFangItem() {
-        fangItemX = random.nextInt(WIDTH / UNIT_SIZE) * UNIT_SIZE;
-        fangItemY = random.nextInt(HEIGHT / UNIT_SIZE) * UNIT_SIZE;
+
+        do {
+            fangItemX = random.nextInt(WIDTH / UNIT_SIZE) * UNIT_SIZE;
+            fangItemY = random.nextInt(HEIGHT / UNIT_SIZE) * UNIT_SIZE;
+
+        } while (!isPositionValid(fangItemX, fangItemY, UNIT_SIZE));
+
         fangItemActive = true;
         fangItemSpawnTime = System.currentTimeMillis();
     }
+
     private Color getBaseColor() {
         switch (level % 5) {
             case 1:
@@ -257,22 +308,26 @@ public class GamePanel extends JPanel implements ActionListener {
             g.drawString("Level: " + level, 20, 60);
             // Vẽ thanh máu của Rắn : ( chưa làm )
 
-
+            if (paused) {
+                g.setColor(Color.YELLOW);
+                g.setFont(new Font("Arial", Font.BOLD, 60));
+                g.drawString("PAUSED", WIDTH / 2 - 150, HEIGHT / 2);
+            }
             if (bossActive) {
                 g.drawImage(bossImg, bossX, bossY, BOSS_SIZE, BOSS_SIZE, null);
             }
-            if(redPotionActive){
+            if (redPotionActive) {
                 long timeLeft = 8000 - (System.currentTimeMillis() - redPotionSpawnTime);
 
-                if(timeLeft > 2000 || (System.currentTimeMillis()/200)%2==0){
+                if (timeLeft > 2000 || (System.currentTimeMillis() / 200) % 2 == 0) {
                     g.drawImage(redPotionImg, redPotionX, redPotionY, UNIT_SIZE, UNIT_SIZE, null);
                 }
             }
 
-            if(bluePotionActive){
+            if (bluePotionActive) {
                 long timeLeft = 8000 - (System.currentTimeMillis() - bluePotionSpawnTime);
 
-                if(timeLeft > 2000 || (System.currentTimeMillis()/200)%2==0){
+                if (timeLeft > 2000 || (System.currentTimeMillis() / 200) % 2 == 0) {
                     g.drawImage(bluePotionImg, bluePotionX, bluePotionY, UNIT_SIZE, UNIT_SIZE, null);
                 }
             }
@@ -295,15 +350,50 @@ public class GamePanel extends JPanel implements ActionListener {
             if (fangItemActive) {
                 g.drawImage(fangItemImg, fangItemX, fangItemY, UNIT_SIZE, UNIT_SIZE, null);
             }
+            // Thanh máu boss
+            if (bossActive) {
+                int barWidth = 300;
+                int barHeight = 20;
+                int xBar = WIDTH / 2 - barWidth / 2;
+                int yBar = 20;
+
+                // nền (max HP)
+                g.setColor(Color.DARK_GRAY);
+                g.fillRect(xBar, yBar, barWidth, barHeight);
+
+                // máu hiện tại
+                int currentWidth = (int) ((double) bossHP / bossMaxHP * barWidth);
+
+                g.setColor(Color.RED);
+                g.fillRect(xBar, yBar, currentWidth, barHeight);
+
+                // viền
+                g.setColor(Color.WHITE);
+                g.drawRect(xBar, yBar, barWidth, barHeight);
+
+                // chữ
+                g.drawString("BOSS HP: " + bossHP + "/" + bossMaxHP, xBar + 70, yBar + 15);
+            }
+
+            g.setColor(Color.ORANGE);
+            for (Fire f : fires) {
+                g.drawImage(fireImg, f.x, f.y, FIRE_SIZE, FIRE_SIZE, null);
+            }
+            // VICTORY
+            if (victory) {
+                g.setColor(Color.YELLOW);
+                g.setFont(new Font("Arial", Font.BOLD, 80));
+                g.drawString("VICTORY", WIDTH / 2 - 200, HEIGHT / 2);
+            }
 
             // Vẽ rắn
             for (int i = 0; i < bodyParts; i++) {
                 // Thêm các chức năng để đầu rắn di chuyển theo hướng điều
                 if (i == 0) {
-                    if(direction == 'U') head = snakeHeadUpImg;
-                    if(direction == 'D') head = snakeHeadDownImg;
-                    if(direction == 'L') head = snakeHeadLeftImg;
-                    if(direction == 'R') head = snakeHeadRightImg;
+                    if (direction == 'U') head = snakeHeadUpImg;
+                    if (direction == 'D') head = snakeHeadDownImg;
+                    if (direction == 'L') head = snakeHeadLeftImg;
+                    if (direction == 'R') head = snakeHeadRightImg;
 
                     // Đầu rắn
                     g.drawImage(head, x[0], y[0], UNIT_SIZE, UNIT_SIZE, this);
@@ -355,12 +445,12 @@ public class GamePanel extends JPanel implements ActionListener {
             if (applesEaten % 5 == 0) {
                 levelUp();
             }
-            // 40% spawn thuốc đỏ
-            if (random.nextInt(100) < 40 && !redPotionActive) {
+            // 10% spawn thuốc đỏ
+            if (random.nextInt(100) < 10 && !redPotionActive) {
                 spawnRedPotion();
             }
-            // 30% spawn thuốc xanh
-            if (random.nextInt(100) < 30 && !bluePotionActive) {
+            // 10% spawn thuốc xanh
+            if (random.nextInt(100) < 10 && !bluePotionActive) {
                 spawnBluePotion();
             }
             // 25% rơi nanh
@@ -369,7 +459,7 @@ public class GamePanel extends JPanel implements ActionListener {
             }
 
             // 30% xác suất spawn rương
-            if (random.nextInt(100) < 99 && !treasureActive) {
+            if (random.nextInt(100) < 30 && !treasureActive) {
                 newtreasure();
             }
         }
@@ -438,11 +528,12 @@ public class GamePanel extends JPanel implements ActionListener {
             wallTimer.start();
         }
     }
+
     public void checkCollision() {
         // Sửa lại để Rắn ăn thuốc Xanh không bị đâm vào đá
-        Rectangle head = new Rectangle(x[0], y[0], UNIT_SIZE , UNIT_SIZE );
+        Rectangle head = new Rectangle(x[0], y[0], UNIT_SIZE, UNIT_SIZE);
 
-        if(!wallPass) {
+        if (!wallPass) {
             for (Rectangle wall : walls) {
                 if (head.intersects(wall)) {
                     gameOver("Đập đầu vào tường!");
@@ -464,45 +555,42 @@ public class GamePanel extends JPanel implements ActionListener {
         // Đụng tường
         if (x[0] < 0 || x[0] >= WIDTH || y[0] < 0 || y[0] >= HEIGHT) {
             gameOver("Bạn đã ra khỏi bản đồ!");
-        }else {
-
-            if (x[0] < 0) x[0] = WIDTH - UNIT_SIZE;
-            if (x[0] >= WIDTH) x[0] = 0;
-
-            if (y[0] < 0) y[0] = HEIGHT - UNIT_SIZE;
-            if (y[0] >= HEIGHT) y[0] = 0;
-
         }
     }
 
 
-private void checkEnemyCollision(Rectangle head, boolean active,
-                                 int ex, int ey, int size, String name) {
-    if (!active) return;
+    private void checkEnemyCollision(Rectangle head, boolean active,
+                                     int ex, int ey, int size, String name) {
+        if (!active) return;
 
-    Rectangle enemy = new Rectangle(ex, ey, size, size);
+        Rectangle enemy = new Rectangle(ex, ey, size, size);
 
-    if (head.intersects(enemy)) {
+        if (head.intersects(enemy)) {
 
-        if (fangMode) {
-            // Quay lại ăn predator
-            if (name.equals("Predator 1")) predatorActive = false;
-            if (name.equals("Predator 2")) predator2Active = false;
-            if (name.equals("Boss")) bossActive = false;
+            if (fangMode) {
+                // Quay lại ăn predator
+                if (name.equals("Predator 1")) predatorActive = false;
+                if (name.equals("Predator 2")) predator2Active = false;
+                if (name.equals("Boss")) bossActive = false;
 
-            applesEaten += 2; // thưởng điểm
-        } else {
-            gameOver("Bạn đã bị " + name + " săn!");
+                applesEaten += 2; // thưởng điểm
+            } else {
+                gameOver("Bạn đã bị " + name + " săn!");
+            }
         }
     }
-}
+
     public void gameOver(String message) {
+
         running = false;
         timer.stop();
 
         int choice = JOptionPane.showOptionDialog(
                 this,
-                message + "\nBạn có muốn chơi lại không?",
+                message +
+                        "\nScore: " + applesEaten +
+                        "\nLevel: " + level +
+                        "\nBạn có muốn chơi lại không?",
                 "Game Over",
                 JOptionPane.YES_NO_OPTION,
                 JOptionPane.QUESTION_MESSAGE,
@@ -514,6 +602,7 @@ private void checkEnemyCollision(Rectangle head, boolean active,
         if (choice == 0) {
             restartGame();
         } else {
+            fires.clear();
             System.exit(0);
         }
     }
@@ -531,6 +620,12 @@ private void checkEnemyCollision(Rectangle head, boolean active,
         bossActive = false;
         bossMode = false;
         treasureActive = false;
+        fangItemActive = false;
+        redPotionActive = false;
+        bluePotionActive = false;
+        wallPass = false;
+        speedBoost = false;
+        fangMode = false;
 
         for (int i = 0; i < bodyParts; i++) {
             x[i] = 0;
@@ -641,11 +736,11 @@ private void checkEnemyCollision(Rectangle head, boolean active,
         // Trả lời đúng
         if (answer == q.getCorrectIndex()) {
 
-            snakeSpeed = 80;
+            snakeSpeed = 90;
             timer.setDelay(snakeSpeed);
 
             Timer speedTimer = new Timer(5000, e -> {
-                snakeSpeed = 120;
+                snakeSpeed = 150;
                 timer.setDelay(snakeSpeed);
             });
             speedTimer.setRepeats(false);
@@ -683,7 +778,7 @@ private void checkEnemyCollision(Rectangle head, boolean active,
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        if (running) {
+        if (running && !paused) {
             move();
             checkApple();
             if (bossActive) {
@@ -705,19 +800,23 @@ private void checkEnemyCollision(Rectangle head, boolean active,
             checkCollision();
             // item tự biến mất sau 8 giây
 
-            if(redPotionActive &&
-                    System.currentTimeMillis() - redPotionSpawnTime > 8000){
+            if (redPotionActive &&
+                    System.currentTimeMillis() - redPotionSpawnTime > 8000) {
                 redPotionActive = false;
             }
 
-            if(bluePotionActive &&
-                    System.currentTimeMillis() - bluePotionSpawnTime > 8000){
+            if (bluePotionActive &&
+                    System.currentTimeMillis() - bluePotionSpawnTime > 8000) {
                 bluePotionActive = false;
             }
 
-            if(fangItemActive &&
-                    System.currentTimeMillis() - fangItemSpawnTime > 8000){
+            if (fangItemActive &&
+                    System.currentTimeMillis() - fangItemSpawnTime > 8000) {
                 fangItemActive = false;
+            }
+            if (running && !paused) {
+                moveFire();
+                checkFireHitBoss();
             }
         }
         repaint();
@@ -728,6 +827,9 @@ private void checkEnemyCollision(Rectangle head, boolean active,
         public void keyPressed(KeyEvent e) {
 
             switch (e.getKeyCode()) {
+                case KeyEvent.VK_C:
+                    paused = !paused;
+                    break;
                 case KeyEvent.VK_LEFT:
                     if (direction != 'R') direction = 'L';
                     break;
@@ -740,7 +842,79 @@ private void checkEnemyCollision(Rectangle head, boolean active,
                 case KeyEvent.VK_DOWN:
                     if (direction != 'U') direction = 'D';
                     break;
+                case KeyEvent.VK_A:
+                    if(level >= 5 && fires.size() < 40){
+                        System.out.println("Bắn!"); // debug
+                        fires.add(new Fire(x[0], y[0], direction));
+                    }
+                    break;
+            }
+        }
+    }
+
+    public class Fire {
+
+        int x, y;           // vị trí
+        char direction;     // hướng bay
+        long spawnTime;     // thời gian tạo
+
+        public Fire(int x, int y, char direction) {
+            this.x = x;
+            this.y = y;
+            this.direction = direction;
+            this.spawnTime = System.currentTimeMillis();
+        }
+    }
+
+    public void moveFire() {
+        for (int i = 0; i < fires.size(); i++) {
+            Fire f = fires.get(i);
+
+            switch (f.direction) {
+                case 'U':
+                    f.y -= UNIT_SIZE;
+                    break;
+                case 'D':
+                    f.y += UNIT_SIZE;
+                    break;
+                case 'L':
+                    f.x -= UNIT_SIZE;
+                    break;
+                case 'R':
+                    f.x += UNIT_SIZE;
+                    break;
+            }
+
+            //  biến mất sau 1 giây nếu không trúng
+            if (System.currentTimeMillis() - f.spawnTime > 3000) {
+                fires.remove(i);
+                i--;
+            }
+        }
+    }
+
+    public void checkFireHitBoss() {
+        for (int i = 0; i < fires.size(); i++) {
+            Fire f = fires.get(i);
+
+            Rectangle fireRect = new Rectangle(f.x, f.y, FIRE_SIZE, FIRE_SIZE);
+            Rectangle bossRect = new Rectangle(bossX, bossY, BOSS_SIZE, BOSS_SIZE);
+
+            if (bossActive && fireRect.intersects(bossRect)) {
+
+                bossHP--;
+
+                // xóa viên đạn
+                fires.remove(i);
+                i--;
+
+                // boss chết
+                if (bossHP <= 0) {
+                    bossActive = false;
+                    victory = true;
+                }
             }
         }
     }
 }
+
