@@ -62,7 +62,7 @@ public class GamePanel extends JPanel implements ActionListener {
     boolean knifeItemActive = false;
     int     knifeItemX, knifeItemY;
     long    knifeItemSpawnTime;
-    static final int KNIFE_DAMAGE        = 5;   // mỗi lần ăn kiếm gây dame này
+    static final int KNIFE_DAMAGE        = 10;   // mỗi lần ăn kiếm gây dame này
     static final int KNIFE_SPAWN_CHANCE  = 40;  // % xuất hiện sau mỗi tick khi không active
     static final int ITEM_LIFETIME_MS    = 8000;
 
@@ -351,7 +351,7 @@ public class GamePanel extends JPanel implements ActionListener {
             g.drawString("PAUSED", WIDTH / 2 - 150, HEIGHT / 2);
         }
 
-        // --- BOSS CẢNH BÁO (đường đỏ) ---
+        // --- BOSS CẢNH BÁO (đường xanh) ---
         if (bossActive && bossState == BossState.WARN) {
             drawBossWarning(g);
         }
@@ -744,8 +744,8 @@ public class GamePanel extends JPanel implements ActionListener {
         applesEaten  = 0;
         level        = 1;
         direction    = 'R';
-        snakeSpeed   = 120;
-        predatorSpeed = 5;
+        snakeSpeed   = 180;
+        predatorSpeed = 15;
         bossHP       = bossMaxHP;
 
         predatorActive  = false;
