@@ -62,9 +62,13 @@ public class GamePanel extends JPanel implements ActionListener {
     boolean knifeItemActive = false;
     int     knifeItemX, knifeItemY;
     long    knifeItemSpawnTime;
-    static final int KNIFE_DAMAGE        = 10;   // mỗi lần ăn kiếm gây dame này
-    static final int KNIFE_SPAWN_CHANCE  = 40;  // % xuất hiện sau mỗi tick khi không active
+    static final int KNIFE_DAMAGE        = 20;   // mỗi lần ăn kiếm gây dame này
     static final int ITEM_LIFETIME_MS    = 8000;
+
+    // Trạng thái đang cầm knife
+    boolean knifeMode = false;
+    // Cooldown tránh damage boss liên tục trong 1 lần chạm
+    boolean bossHitCooldown = false;
 
     // ──────────────────────────────────────────────
     // PAUSE / TRẠNG THÁI
@@ -88,7 +92,7 @@ public class GamePanel extends JPanel implements ActionListener {
     BossState bossState      = BossState.IDLE;
     int       bossStateTick  = 0;
     char      bossChargeDir  = 'R';          // hướng sẽ lao
-    static final int IDLE_TICKS  = 30;       // ~số frame đứng yên
+    static final int IDLE_TICKS  = 20;       // ~số frame đứng yên
     static final int WARN_TICKS  = 20;       // ~số frame hiện cảnh báo
     static final int BOSS_CHARGE_STEP = UNIT_SIZE * 10; // tốc độ lao
 
@@ -248,6 +252,14 @@ public class GamePanel extends JPanel implements ActionListener {
         bossStateTick = 0;
     }
 
+    /** Boss bị đánh → teleport về vị trí random (bỏ chạy) */
+    public void bossTeleport() {
+        bossX = random.nextInt((WIDTH  - BOSS_SIZE) / UNIT_SIZE) * UNIT_SIZE;
+        bossY = random.nextInt((HEIGHT - BOSS_SIZE) / UNIT_SIZE) * UNIT_SIZE;
+        bossState     = BossState.IDLE;
+        bossStateTick = 0;
+    }
+
     public void spawnRedPotion() {
         do {
             redPotionX = random.nextInt(WIDTH  / UNIT_SIZE) * UNIT_SIZE;
@@ -344,6 +356,13 @@ public class GamePanel extends JPanel implements ActionListener {
         g.drawString("Score: " + applesEaten, 20, 30);
         g.drawString("Level: " + level,       20, 60);
 
+        // --- Hiện trạng thái knife ---
+        if (knifeMode) {
+            g.setColor(Color.YELLOW);
+            g.setFont(new Font("Arial", Font.BOLD, 16));
+            g.drawString("KNIFE MODE!", 20, 90);
+        }
+
         // --- PAUSE ---
         if (paused) {
             g.setColor(Color.YELLOW);
@@ -435,7 +454,12 @@ public class GamePanel extends JPanel implements ActionListener {
                 if (head != null)
                     g.drawImage(head, x[0], y[0], UNIT_SIZE, UNIT_SIZE, this);
             } else {
-                g.setColor(i % 2 == 0 ? new Color(93, 140, 63) : new Color(166, 214, 58));
+                // Thân rắn đổi màu vàng khi đang knifeMode
+                if (knifeMode) {
+                    g.setColor(i % 2 == 0 ? new Color(255, 200, 0) : new Color(255, 140, 0));
+                } else {
+                    g.setColor(i % 2 == 0 ? new Color(93, 140, 63) : new Color(166, 214, 58));
+                }
                 g.fillOval(x[i], y[i], UNIT_SIZE, UNIT_SIZE);
                 g.setColor(Color.BLACK);
                 g.drawRect(x[i], y[i], UNIT_SIZE, UNIT_SIZE);
@@ -453,7 +477,7 @@ public class GamePanel extends JPanel implements ActionListener {
         } else {
             g2.setColor(new Color(0, 205, 0, 100));   // đỏ tối
         }
-        g2.setStroke(new BasicStroke(UNIT_SIZE));
+        g2.setStroke(new BasicStroke(UNIT_SIZE * 4));
 
         switch (bossChargeDir) {
             case 'L': g2.drawLine(0,      bossY + BOSS_SIZE / 2, bossX, bossY + BOSS_SIZE / 2); break;
@@ -511,7 +535,7 @@ public class GamePanel extends JPanel implements ActionListener {
         expireItems();
 
         // --- Spawn kiếm định kỳ khi boss còn sống ---
-        if (bossActive && !knifeItemActive && random.nextInt(200) < 1) {
+        if (bossActive && !knifeItemActive && random.nextInt(100) < 100) {
             spawnKnifeItem();
         }
 
@@ -569,6 +593,14 @@ public class GamePanel extends JPanel implements ActionListener {
                 }
                 break;
         }
+    }
+    // ══════════════════════════════════════════════
+    // VICTORY
+    // ══════════════════════════════════════════════
+    public void triggerVictory() {
+        victory = true;
+        timer.stop();
+        new Timer(5000, e -> System.exit(0)) {{ setRepeats(false); start(); }};
     }
 
     // ══════════════════════════════════════════════
@@ -657,16 +689,15 @@ public class GamePanel extends JPanel implements ActionListener {
             new Timer(8000, e -> wallPass = false) {{ setRepeats(false); start(); }};
         }
 
-        // KIẾM – tự động damage boss
+        // Knife – bật knifeMode 5 giây
         if (knifeItemActive && x[0] == knifeItemX && y[0] == knifeItemY) {
             knifeItemActive = false;
-            if (bossActive) {
-                bossHP -= KNIFE_DAMAGE;
-                if (bossHP <= 0) {
-                    bossActive = false;
-                    victory    = true;
-                }
-            }
+            knifeMode = true;
+            bossHitCooldown = false;
+            new Timer(5000, e -> {
+                knifeMode = false;
+                bossHitCooldown = false;
+            }) {{ setRepeats(false); start(); }};
         }
     }
 
@@ -674,12 +705,12 @@ public class GamePanel extends JPanel implements ActionListener {
     // KIỂM TRA VA CHẠM
     // ══════════════════════════════════════════════
     public void checkCollision() {
-        Rectangle snakeHead = new Rectangle(x[0], y[0], UNIT_SIZE, UNIT_SIZE);
+        Rectangle snakeHeadRect = new Rectangle(x[0], y[0], UNIT_SIZE, UNIT_SIZE);
 
         // Tường
         if (!wallPass) {
             for (Rectangle wall : walls) {
-                if (snakeHead.intersects(wall)) gameOver("Đập đầu vào tường!");
+                if (snakeHeadRect.intersects(wall)) gameOver("Đập đầu vào tường!");
             }
         }
 
@@ -688,19 +719,42 @@ public class GamePanel extends JPanel implements ActionListener {
             if (x[0] == x[i] && y[0] == y[i]) gameOver("Bạn tự cắn mình!");
         }
 
-        // Va chạm với enemy
-        checkEnemyCollision(snakeHead, predatorActive,  predatorX,  predatorY,  PREDATOR_SIZE, "Predator 1");
-        checkEnemyCollision(snakeHead, predator2Active, predator2X, predator2Y, PREDATOR_SIZE, "Predator 2");
+        // Va chạm với predator
+        checkEnemyCollision(snakeHeadRect, predatorActive,  predatorX,  predatorY,  PREDATOR_SIZE, "Predator 1");
+        checkEnemyCollision(snakeHeadRect, predator2Active, predator2X, predator2Y, PREDATOR_SIZE, "Predator 2");
 
-        // Va chạm với Boss (đặc biệt khi đang CHARGE)
+        // Va chạm Boss
         if (bossActive) {
             Rectangle bossRect = new Rectangle(bossX, bossY, BOSS_SIZE, BOSS_SIZE);
-            if (snakeHead.intersects(bossRect)) {
-                if (fangMode) {
+
+            if (knifeMode) {
+                // ── Đang cầm knife: cả đầu lẫn thân đều an toàn ──
+                // Chỉ đầu rắn mới gây dame boss
+                if (snakeHeadRect.intersects(bossRect) && !bossHitCooldown) {
                     bossHP -= KNIFE_DAMAGE;
-                    if (bossHP <= 0) { bossActive = false; victory = true; }
-                } else {
+                    bossHitCooldown = true;
+                    // Cooldown 500ms tránh trừ máu liên tục
+                    new Timer(500, e -> bossHitCooldown = false) {{ setRepeats(false); start(); }};
+
+                    if (bossHP <= 0) {
+                        bossActive = false;
+                        triggerVictory();
+                    } else {
+                        bossTeleport(); // boss bỏ chạy
+                    }
+                }
+                // Thân chạm boss → an toàn, không làm gì
+
+            } else {
+                // ── Không có knife: cả đầu lẫn thân đều chết ──
+                if (snakeHeadRect.intersects(bossRect)) {
                     gameOver("Boss đã nghiền nát bạn!");
+                }
+                for (int i = 1; i < bodyParts; i++) {
+                    Rectangle bodyPart = new Rectangle(x[i], y[i], UNIT_SIZE, UNIT_SIZE);
+                    if (bodyPart.intersects(bossRect)) {
+                        gameOver("Boss cắt đứt thân rắn bạn!");
+                    }
                 }
             }
         }
@@ -744,8 +798,8 @@ public class GamePanel extends JPanel implements ActionListener {
         applesEaten  = 0;
         level        = 1;
         direction    = 'R';
-        snakeSpeed   = 180;
-        predatorSpeed = 15;
+        snakeSpeed   = 120;
+        predatorSpeed = 5;
         bossHP       = bossMaxHP;
 
         predatorActive  = false;
@@ -759,6 +813,8 @@ public class GamePanel extends JPanel implements ActionListener {
         knifeItemActive = false;
         wallPass  = false;
         speedBoost = false;
+        knifeMode        = false;
+        bossHitCooldown  = false;
         fangMode  = false;
         victory   = false;
 
