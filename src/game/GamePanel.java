@@ -62,7 +62,7 @@ public class GamePanel extends JPanel implements ActionListener {
     boolean knifeItemActive = false;
     int     knifeItemX, knifeItemY;
     long    knifeItemSpawnTime;
-    static final int KNIFE_DAMAGE        = 20;   // mỗi lần ăn kiếm gây dame này
+    static final int KNIFE_DAMAGE        = 10;   // mỗi lần ăn kiếm gây dame này
     static final int ITEM_LIFETIME_MS    = 8000;
 
     // Trạng thái đang cầm knife
@@ -127,6 +127,8 @@ public class GamePanel extends JPanel implements ActionListener {
     // ──────────────────────────────────────────────
     int level = 1;
     ArrayList<Rectangle> walls = new ArrayList<>();
+
+
 
     // ──────────────────────────────────────────────
     // ẢNH & TIMER

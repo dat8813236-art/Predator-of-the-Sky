@@ -4,8 +4,8 @@ import javax.swing.*;
 
 public class GameFrame extends JFrame {
 
-    public GameFrame() {
-        setTitle("Snake Hunter Game");
+    public GameFrame(String username) {
+        setTitle("Snake Hunter Game - " + username);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setResizable(false);
 
